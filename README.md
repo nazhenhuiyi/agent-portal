@@ -29,6 +29,8 @@ npm run demo -- delete
 
 演示会创建主题和模板。running 只更新展示条目 `demo/demo-report`；completed 原子更新条目并发布独立通知 `daily-completed`；notification / clear-notification 只发布或清除通知；delete 只删除展示条目。初始化与演示分别可重复运行；每次演示发布是新操作，真正网络重试须沿用同一个幂等键。
 
+想直接看有内容的界面，运行 `npm run demo -- showcase`：发布晨间阅读、代码巡检、旅途相册三组场景示例，并配套原生小组件模板。[示例内容与使用说明](examples/showcase/README.md)。
+
 SQLite 和凭据保存在 `.local/`，已忽略 Git。初始化产生管理员、demo 写入者和 demo 读取者三种令牌，查看 `.local/credentials.json` 的 `reader.token` 配置手机；不要把管理员令牌填进客户端。
 
 ## 给 Agent 调用

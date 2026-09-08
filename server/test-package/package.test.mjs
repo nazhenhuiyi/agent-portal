@@ -197,6 +197,16 @@ test(
     const history = await get("/v1/topics/demo/history");
     assert.equal(history.events.length, 3);
     // An open SSE connection must not prevent shutdown under a process manager.
+    await run(["demo", "showcase"]);
+    const showcase = await get("/v1/topics/demo/sync");
+    assert.equal(showcase.items.length, 4);
+    assert(showcase.items.some((item) => item.id === "morning-reading"));
+    assert(showcase.items.some((item) => item.id === "night-watch"));
+    assert(showcase.items.some((item) => item.id === "travel-archive"));
+    assert.equal(showcase.notifications.length, 3);
+    // Preserve the original package persistence assertions below with the expanded snapshot.
+    snapshot.items = showcase.items;
+    history.events = (await get("/v1/topics/demo/history")).events;
     const stream = await fetch(base + "/v1/topics/demo/stream", {
       headers: { Authorization: `Bearer ${secrets.reader.token}` },
       signal: AbortSignal.timeout(10000),
@@ -225,7 +235,12 @@ test(
     );
     await stop("SIGKILL");
     await start();
-    assert.equal((await get("/v1/topics/demo/sync")).items[0].revision, 2);
+    assert.equal(
+      (await get("/v1/topics/demo/sync")).items.find(
+        (item) => item.id === "demo-report",
+      ).revision,
+      2,
+    );
     const created = JSON.parse(
       (await run(["token", "create", "write", "demo"])).stdout,
     );

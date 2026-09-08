@@ -1,0 +1,104 @@
+[
+  {
+    "item": {
+      "id": "travel-archive",
+      "content": {
+        "title": "昨晚的照片，都收好了",
+        "body": "旅途相册已按日期归档，重复文件已跳过。还有 2 张照片缺少拍摄时间，留给你确认。",
+        "template": {
+          "id": "archive-recap",
+          "version": 1
+        },
+        "data": {
+          "eyebrow": "资料归档  /  场景示例",
+          "photos": "328",
+          "albums": "14",
+          "pending": "02",
+          "note": "其余照片已经归位。\n这两张的日期，想请你确认一下。",
+          "compact": "328 张照片已归档 · 2 张待确认"
+        },
+        "link": {
+          "type": "url",
+          "url": "https://example.com/agent/photos"
+        }
+      }
+    }
+  },
+  {
+    "notification": {
+      "id": "archive-attention",
+      "content": {
+        "title": "有两张照片，想请你认领日期",
+        "body": "旅途相册已整理好。补上日期，这次归档就完整了。",
+        "link": {
+          "type": "url",
+          "url": "https://example.com/agent/photos"
+        }
+      },
+      "mode": "alert",
+      "ttl_seconds": 3600
+    }
+  },
+  {
+    "item": {
+      "id": "night-watch",
+      "content": {
+        "title": "夜里巡检，早上只看重点",
+        "body": "正在核对支付重试与超时清理。已检查 8 / 12 个模块，审阅意见会整理成一份清单。",
+        "template": {
+          "id": "code-watch",
+          "version": 1
+        },
+        "data": {
+          "eyebrow": "代码巡检  /  场景示例",
+          "focus": "这一轮重点\n重试是否重复提交 · 超时是否释放连接",
+          "progress": 0.67,
+          "compact": "进行中 · 已检查 8 / 12 个模块"
+        },
+        "link": {
+          "type": "url",
+          "url": "https://example.com/agent/code-review"
+        }
+      }
+    }
+  },
+  {
+    "item": {
+      "id": "morning-reading",
+      "content": {
+        "title": "离线时，消息去了哪里？",
+        "body": "今天围绕手机休眠与消息投递，选了三篇资料：ntfy 的移动端机制、Android 后台限制，以及小组件的更新方式。",
+        "template": {
+          "id": "morning-pages",
+          "version": 1
+        },
+        "data": {
+          "eyebrow": "晨间阅读  /  场景示例",
+          "intro": "一个问题，三篇值得读的资料。",
+          "picks": "01  ntfy 如何送达手机\n02  Android 为什么限制后台\n03  小组件何时更新",
+          "footer": "约 12 分钟 · 从 ntfy 文档开始",
+          "compact": "3 篇精选 · 约 12 分钟"
+        },
+        "link": {
+          "type": "url",
+          "url": "https://docs.ntfy.sh/subscribe/phone/"
+        }
+      }
+    }
+  },
+  {
+    "notification": {
+      "id": "reading-ready",
+      "content": {
+        "title": "今天的阅读，帮你挑好了",
+        "body": "关于手机休眠与消息投递的 3 篇资料，留给你一杯咖啡的时间。",
+        "link": {
+          "type": "url",
+          "url": "https://docs.ntfy.sh/subscribe/phone/"
+        }
+      },
+      "mode": "alert",
+      "ttl_seconds": 3600
+    }
+  }
+]

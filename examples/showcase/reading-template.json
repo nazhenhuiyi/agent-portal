@@ -1,0 +1,78 @@
+{
+  "id": "morning-pages",
+  "version": 1,
+  "renderer_version": 1,
+  "requires": [
+    "layout.basic",
+    "text.bind"
+  ],
+  "asset_ids": [],
+  "widget": {
+    "type": "column",
+    "gap_dp": 8,
+    "children": [
+      {
+        "type": "text",
+        "text": {
+          "bind": "/data/eyebrow"
+        },
+        "style": "caption",
+        "max_lines": 1
+      },
+      {
+        "type": "text",
+        "text": {
+          "bind": "/title"
+        },
+        "style": "title",
+        "max_lines": 2
+      },
+      {
+        "type": "text",
+        "text": {
+          "bind": "/data/intro"
+        },
+        "style": "body",
+        "max_lines": 1
+      },
+      {
+        "type": "text",
+        "text": {
+          "bind": "/data/picks"
+        },
+        "style": "body",
+        "max_lines": 3
+      },
+      {
+        "type": "text",
+        "text": {
+          "bind": "/data/footer"
+        },
+        "style": "caption",
+        "max_lines": 1
+      }
+    ]
+  },
+  "compact_widget": {
+    "type": "column",
+    "gap_dp": 6,
+    "children": [
+      {
+        "type": "text",
+        "text": {
+          "bind": "/title"
+        },
+        "style": "title",
+        "max_lines": 1
+      },
+      {
+        "type": "text",
+        "text": {
+          "bind": "/data/compact"
+        },
+        "style": "caption",
+        "max_lines": 1
+      }
+    ]
+  }
+}

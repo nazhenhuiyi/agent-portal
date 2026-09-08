@@ -21,3 +21,9 @@ await cp(
   new URL("../deployment/", import.meta.url),
   { recursive: true },
 );
+
+await cp(
+  new URL("../../examples/showcase/", import.meta.url),
+  new URL("../resources/examples/showcase/", import.meta.url),
+  { recursive: true },
+);
