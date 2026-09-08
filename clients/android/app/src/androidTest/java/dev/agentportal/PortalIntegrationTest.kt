@@ -371,6 +371,96 @@ class PortalIntegrationTest {
     }
 
     @Test
+    fun widgetReapply() = runBlocking {
+        // A launcher reuses the existing hierarchy: apply-only tests miss duplicate children.
+        val host = AppWidgetHost(context, 405)
+        val id = host.allocateAppWidgetId()
+        val topic = "widget-ui-" + UUID.randomUUID()
+        val manager = AppWidgetManager.getInstance(context)
+        try {
+            assertTrue(
+                manager.bindAppWidgetIdIfAllowed(
+                    id,
+                    ComponentName(context, PortalWidget::class.java),
+                )
+            )
+            manager.updateAppWidgetOptions(
+                id,
+                android.os.Bundle().apply {
+                    putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 280)
+                    putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 100)
+                    putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 240)
+                },
+            )
+            repo.dao.putWidget(WidgetRow(id, topic, "report"))
+            repo.dao.putItem(
+                ItemRow(topic, "report", 1, """{"content":{"title":"生成中","body":"正在整理资料"}}""")
+            )
+            val first = PortalWidget.buildViews(context, id)
+            lateinit var view: android.view.View
+            instrument.runOnMainSync { view = first.apply(context, LinearLayout(context)) }
+            repo.dao.putItem(
+                ItemRow(topic, "report", 2, """{"content":{"title":"已完成","body":"查看完整报告"}}""")
+            )
+            repeat(5) {
+                val update = PortalWidget.buildViews(context, id)
+                instrument.runOnMainSync {
+                    update.reapply(context, view)
+                    val container = view.findViewById<LinearLayout>(R.id.content)
+                    assertEquals(
+                        "Each refresh must replace the previous tree",
+                        1,
+                        container.childCount,
+                    )
+                    fun texts(v: android.view.View): List<String> =
+                        when (v) {
+                            is android.widget.TextView -> listOf(v.text.toString())
+                            is android.view.ViewGroup ->
+                                (0 until v.childCount).flatMap { texts(v.getChildAt(it)) }
+                            else -> emptyList()
+                        }
+                    assertEquals(
+                        listOf("已完成", "查看完整报告"),
+                        texts(container).filter { it.isNotEmpty() },
+                    )
+                }
+            }
+            manager.updateAppWidgetOptions(
+                id,
+                android.os.Bundle().apply {
+                    putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 180)
+                    putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 100)
+                    putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 100)
+                },
+            )
+            val compact = PortalWidget.buildViews(context, id)
+            instrument.runOnMainSync {
+                compact.reapply(context, view)
+                val container = view.findViewById<LinearLayout>(R.id.content)
+                assertTrue(
+                    "Small fallback uses a single title",
+                    container.getChildAt(0) is android.widget.TextView,
+                )
+                assertEquals(1, (container.getChildAt(0) as android.widget.TextView).maxLines)
+            }
+            repo.dao.putItem(ItemRow(topic, "report", 3, null))
+            val empty = PortalWidget.buildViews(context, id)
+            instrument.runOnMainSync {
+                empty.reapply(context, view)
+                assertEquals(0, view.findViewById<LinearLayout>(R.id.content).childCount)
+                assertEquals(
+                    android.view.View.VISIBLE,
+                    view.findViewById<android.view.View>(R.id.empty).visibility,
+                )
+            }
+        } finally {
+            host.deleteAppWidgetId(id)
+            repo.dao.deleteWidget(id)
+            repo.dao.clearItems(topic)
+        }
+    }
+
+    @Test
     fun prepareDemo() = runBlocking {
         repo.foreground = false
         repo.stop()

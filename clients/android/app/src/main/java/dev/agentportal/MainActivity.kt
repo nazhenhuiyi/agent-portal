@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,28 +16,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
-
-@Composable
-fun PortalTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme =
-            lightColorScheme(
-                primary = Color(0xFF246B5E),
-                background = Color(0xFFF8FAF7),
-                surface = Color(0xFFF8FAF7),
-                surfaceVariant = Color(0xFFEAF0E9),
-                secondaryContainer = Color(0xFFD9E9DE),
-                surfaceContainer = Color(0xFFEEF3EE),
-            ),
-        content = content,
-    )
-}
 
 class MainActivity : ComponentActivity() {
     private val permission =
@@ -44,11 +32,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         val repo = (application as PortalApp).repo
         setContent {
             PortalTheme {
                 val scope = rememberCoroutineScope()
-                var tab by remember {
+                var tab by rememberSaveable {
                     mutableIntStateOf(if (repo.settings.token.isEmpty()) 1 else 0)
                 }
                 val hasMore by repo.hasMoreHistory.collectAsState()
@@ -62,61 +51,77 @@ class MainActivity : ComponentActivity() {
                 var selected by remember { mutableStateOf(repo.settings.topics) }
                 var notifications by remember { mutableStateOf(repo.settings.notify) }
                 var busy by remember { mutableStateOf(false) }
+                var refreshing by remember { mutableStateOf(false) }
                 var filter by remember { mutableStateOf(intent.getStringExtra("item")) }
                 val filterKind = intent.getStringExtra("kind") ?: "item"
                 val filterTopic = intent.getStringExtra("topic")
                 LaunchedEffect(topics) { selected = repo.settings.topics }
                 Scaffold(
                     bottomBar = {
-                        NavigationBar {
+                        NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                             NavigationBarItem(
                                 selected = tab == 0,
                                 onClick = { tab = 0 },
-                                icon = { Text("◷") },
+                                icon = { PortalIcon(R.drawable.ic_history) },
                                 label = { Text("历史") },
                             )
                             NavigationBarItem(
                                 selected = tab == 1,
                                 onClick = { tab = 1 },
-                                icon = { Text("⚙") },
+                                icon = { PortalIcon(R.drawable.ic_settings) },
                                 label = { Text("设置") },
                             )
                         }
                     }
                 ) { padding ->
                     Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp)) {
-                        Spacer(Modifier.height(20.dp))
-                        Text(
-                            "Agent Portal",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            status,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 6.dp, bottom = 18.dp),
-                        )
-                        if (tab == 0) {
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                Text("历史记录", style = MaterialTheme.typography.titleLarge)
-                                TextButton(
+                        Row(
+                            Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 20.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    "AGENT PORTAL",
+                                    style =
+                                        MaterialTheme.typography.labelMedium.copy(
+                                            letterSpacing = 2.sp
+                                        ),
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                                Text(
+                                    if (tab == 0) "最近动态" else "设置",
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.padding(top = 6.dp),
+                                )
+                            }
+                            if (tab == 0)
+                                IconButton(
+                                    enabled = !refreshing,
                                     onClick = {
                                         scope.launch {
+                                            refreshing = true
                                             try {
                                                 repo.syncAll()
                                             } catch (_: Exception) {
                                                 repo.status.value = "同步失败，已保留本地内容"
+                                            } finally {
+                                                refreshing = false
                                             }
                                         }
-                                    }
+                                    },
                                 ) {
-                                    Text("刷新")
+                                    if (refreshing)
+                                        CircularProgressIndicator(
+                                            Modifier.size(20.dp),
+                                            strokeWidth = 2.dp,
+                                        )
+                                    else PortalIcon(R.drawable.ic_refresh, "刷新历史")
                                 }
-                            }
+                        }
+                        SyncStatus(status)
+                        Spacer(Modifier.height(24.dp))
+                        if (tab == 0) {
                             if (filter != null)
                                 InputChip(
                                     selected = true,
@@ -124,86 +129,44 @@ class MainActivity : ComponentActivity() {
                                     label = { Text("$filter · 查看全部") },
                                 )
                             val visible =
-                                history.filter {
-                                    filter == null ||
-                                        (it.str(filterKind + "_id") == filter &&
-                                            (filterTopic == null ||
-                                                it.str("topic_id") == filterTopic))
-                                }
-                            if (visible.isEmpty()) {
-                                Spacer(Modifier.height(48.dp))
-                                Text("还没有历史数据", style = MaterialTheme.typography.titleMedium)
-                                Text(
-                                    "连接服务并发布内容后，记录会出现在这里。",
-                                    modifier = Modifier.padding(top = 8.dp),
-                                )
-                            }
-                            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                history
+                                    .sortedByDescending { it.str("recorded_at") }
+                                    .filter {
+                                        filter == null ||
+                                            (it.str(filterKind + "_id") == filter &&
+                                                (filterTopic == null ||
+                                                    it.str("topic_id") == filterTopic))
+                                    }
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(14.dp),
+                                contentPadding = PaddingValues(bottom = 24.dp),
+                            ) {
+                                if (visible.isEmpty())
+                                    item {
+                                        EmptyHistory(
+                                            filtered = filter != null,
+                                            onSettings = { tab = 1 },
+                                        )
+                                    }
                                 items(visible, key = { it.str("id") }) { event ->
-                                    val kind =
-                                        if (event.str("type").startsWith("notification."))
-                                            "notification"
-                                        else "item"
-                                    val deleted =
-                                        event.str("type").endsWith(".deleted") ||
-                                            event.str("type").endsWith(".cleared")
-                                    val content = event.obj(kind).obj("content")
-                                    Card(
-                                        Modifier.fillMaxWidth().clickable(
-                                            enabled =
-                                                !deleted &&
-                                                    content.obj("link").str("url").isNotEmpty()
-                                        ) {
-                                            try {
-                                                startActivity(
-                                                    linkIntent(
-                                                        this@MainActivity,
-                                                        content,
-                                                        event.str("topic_id"),
-                                                        event.str(kind + "_id"),
-                                                        kind,
-                                                    )
+                                    HistoryCard(event, topics) { content, kind ->
+                                        try {
+                                            startActivity(
+                                                linkIntent(
+                                                    this@MainActivity,
+                                                    content,
+                                                    event.str("topic_id"),
+                                                    event.str(kind + "_id"),
+                                                    kind,
                                                 )
-                                            } catch (_: Exception) {
-                                                Toast.makeText(
-                                                        this@MainActivity,
-                                                        "无法发起跳转",
-                                                        Toast.LENGTH_SHORT,
-                                                    )
-                                                    .show()
-                                            }
-                                        },
-                                        colors =
-                                            CardDefaults.cardColors(containerColor = Color.White),
-                                    ) {
-                                        Column(Modifier.padding(16.dp)) {
-                                            Text(
-                                                if (deleted)
-                                                    (if (kind == "notification") "已清除通知"
-                                                    else "已移除展示条目")
-                                                else content.str("title"),
-                                                style = MaterialTheme.typography.titleMedium,
                                             )
-                                            if (content.str("body").isNotEmpty())
-                                                Text(
-                                                    content.str("body"),
-                                                    modifier = Modifier.padding(top = 8.dp),
-                                                    style = MaterialTheme.typography.bodyMedium,
+                                        } catch (_: Exception) {
+                                            Toast.makeText(
+                                                    this@MainActivity,
+                                                    "无法发起跳转",
+                                                    Toast.LENGTH_SHORT,
                                                 )
-                                            Text(
-                                                topics
-                                                    .firstOrNull {
-                                                        it.str("id") == event.str("topic_id")
-                                                    }
-                                                    ?.str("name") ?: event.str("topic_id"),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.padding(top = 12.dp),
-                                            )
-                                            Text(
-                                                displayTime(event.str("recorded_at")),
-                                                style = MaterialTheme.typography.labelSmall,
-                                            )
+                                                .show()
                                         }
                                     }
                                 }
@@ -225,8 +188,12 @@ class MainActivity : ComponentActivity() {
                                     }
                             }
                         } else {
-                            LazyColumn(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                item { Text("连接服务", style = MaterialTheme.typography.titleLarge) }
+                            LazyColumn(
+                                modifier = Modifier.imePadding(),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                contentPadding = PaddingValues(bottom = 24.dp),
+                            ) {
+                                item { SectionHeading("连接服务", "填写你的服务地址与读取令牌") }
                                 item {
                                     OutlinedTextField(
                                         base,
@@ -283,7 +250,7 @@ class MainActivity : ComponentActivity() {
                                         Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                     ) {
-                                        Column {
+                                        Column(Modifier.weight(1f).padding(end = 16.dp)) {
                                             Text("允许内容提醒")
                                             Text(
                                                 "系统通知权限仍由你控制",
@@ -304,21 +271,14 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                                 if (topics.isNotEmpty()) {
-                                    item {
-                                        HorizontalDivider()
-                                        Text(
-                                            "订阅主题",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            modifier = Modifier.padding(top = 14.dp),
-                                        )
-                                    }
+                                    item { SectionHeading("订阅主题", "选择手机接收和展示的内容") }
                                     items(topics, key = { it.str("id") }) { topic ->
                                         val id = topic.str("id")
                                         Row(
                                             Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                         ) {
-                                            Column {
+                                            Column(Modifier.weight(1f).padding(end = 12.dp)) {
                                                 Text(topic.str("name"))
                                                 Text(id, style = MaterialTheme.typography.bodySmall)
                                             }
@@ -334,7 +294,24 @@ class MainActivity : ComponentActivity() {
                                     item {
                                         OutlinedButton(
                                             onClick = {
-                                                scope.launch { repo.selectTopics(selected) }
+                                                scope.launch {
+                                                    try {
+                                                        repo.selectTopics(selected)
+                                                        Toast.makeText(
+                                                                this@MainActivity,
+                                                                "订阅已更新",
+                                                                Toast.LENGTH_SHORT,
+                                                            )
+                                                            .show()
+                                                    } catch (_: Exception) {
+                                                        Toast.makeText(
+                                                                this@MainActivity,
+                                                                "订阅更新失败，请重试",
+                                                                Toast.LENGTH_SHORT,
+                                                            )
+                                                            .show()
+                                                    }
+                                                }
                                             }
                                         ) {
                                             Text("应用订阅")
@@ -366,6 +343,7 @@ class MainActivity : ComponentActivity() {
 class WidgetConfigActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setResult(RESULT_CANCELED)
         val id =
             intent.getIntExtra(
@@ -382,8 +360,22 @@ class WidgetConfigActivity : ComponentActivity() {
                 val items by repo.items.collectAsState()
                 val scope = rememberCoroutineScope()
                 Surface(Modifier.fillMaxSize()) {
-                    Column(Modifier.padding(24.dp).padding(top = 32.dp)) {
-                        Text("选择展示内容", style = MaterialTheme.typography.headlineSmall)
+                    Column(
+                        Modifier.fillMaxSize()
+                            .windowInsetsPadding(WindowInsets.safeDrawing)
+                            .padding(24.dp)
+                    ) {
+                        Text(
+                            "桌面小组件",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            "选择展示内容",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
                         Text("一个小组件绑定一份持续更新的内容", modifier = Modifier.padding(vertical = 16.dp))
                         if (items.none { it.payload != null }) {
                             Text("暂无内容，请先连接服务并同步。")
@@ -404,7 +396,11 @@ class WidgetConfigActivity : ComponentActivity() {
                             ) { row ->
                                 val title = parseObject(row.payload!!).obj("content").str("title")
                                 ListItem(
-                                    headlineContent = { Text(title) },
+                                    leadingContent = { PortalIcon(R.drawable.ic_widget) },
+                                    trailingContent = { PortalIcon(R.drawable.ic_arrow) },
+                                    headlineContent = {
+                                        Text(title, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    },
                                     supportingContent = { Text(row.topic + " / " + row.id) },
                                     modifier =
                                         Modifier.clickable {
