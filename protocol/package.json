@@ -1,0 +1,14 @@
+{
+  "name": "agent-portal-protocol",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/check.mjs"
+  },
+  "devDependencies": {
+    "@apidevtools/swagger-parser": "12.1.0",
+    "ajv": "8.17.1",
+    "ajv-formats": "3.0.1"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "topic_id": "research",
+  "id": "daily-2026-09-08",
+  "revision": 1,
+  "created_at": "2026-09-08T00:00:00Z",
+  "updated_at": "2026-09-08T00:00:00Z",
+  "content": {
+    "title": "日报生成中",
+    "body": "正在整理资料。",
+    "data": {
+      "phase": "running",
+      "progress": 0.2
+    },
+    "template": {
+      "id": "report-card",
+      "version": 1
+    }
+  }
+}

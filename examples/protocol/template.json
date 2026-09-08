@@ -1,0 +1,44 @@
+{
+  "id": "report-card",
+  "version": 1,
+  "renderer_version": 1,
+  "requires": [
+    "layout.basic",
+    "text.bind",
+    "progress.bind"
+  ],
+  "asset_ids": [],
+  "widget": {
+    "type": "column",
+    "children": [
+      {
+        "type": "text",
+        "text": {
+          "bind": "/title"
+        },
+        "style": "title"
+      },
+      {
+        "type": "text",
+        "text": {
+          "bind": "/body"
+        },
+        "style": "body"
+      },
+      {
+        "type": "progress",
+        "value": {
+          "bind": "/data/progress",
+          "fallback": 0
+        }
+      }
+    ]
+  },
+  "compact_widget": {
+    "type": "text",
+    "text": {
+      "bind": "/title"
+    },
+    "style": "title"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "ed645c41-b9bf-473a-91f0-303ebc8caf54",
+  "topic_id": "research",
+  "notification_id": "daily-completed",
+  "revision": 1,
+  "recorded_at": "2026-09-08T00:03:00Z",
+  "type": "notification.upserted",
+  "notification": {
+    "topic_id": "research",
+    "id": "daily-completed",
+    "revision": 1,
+    "created_at": "2026-09-08T00:03:00Z",
+    "updated_at": "2026-09-08T00:03:00Z",
+    "content": {
+      "title": "今日日报已完成",
+      "body": "3 条重点值得关注，点击查看。",
+      "link": {
+        "type": "url",
+        "url": "https://agent.example/reports/2026-09-08"
+      }
+    },
+    "mode": "alert",
+    "expires_at": "2026-09-08T00:13:00Z"
+  }
+}

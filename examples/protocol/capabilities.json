@@ -1,0 +1,25 @@
+{
+  "api_version": "v1",
+  "template_renderer_versions": [
+    1
+  ],
+  "template_features": [
+    "layout.basic",
+    "text.bind",
+    "image.static",
+    "progress.bind"
+  ],
+  "limits": {
+    "content_bytes": 16384,
+    "request_bytes": 32768,
+    "template_bytes": 65536,
+    "snapshot_bytes": 16777216,
+    "delta_bytes": 2097152,
+    "asset_bytes": 2097152,
+    "asset_max_dimension": 2048,
+    "items_per_topic": 500,
+    "history_retention_seconds": 2592000,
+    "idempotency_retention_seconds": 86400,
+    "notifications_per_topic": 500
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "publish-running.json": "PublishRequest",
+  "publish-completed.json": "PublishRequest",
+  "publish-minimal.json": "PublishRequest",
+  "topic.json": "TopicInput",
+  "item-running.json": "Item",
+  "item-completed.json": "Item",
+  "event-completed.json": "Event",
+  "event-deleted.json": "Event",
+  "snapshot.json": "SyncResponse",
+  "delta.json": "SyncResponse",
+  "history.json": "History",
+  "error.json": "Error",
+  "capabilities.json": "Capabilities",
+  "template.json": "Template",
+  "notification-only.json": "NotificationRequest",
+  "publication-combined.json": "PublicationRequest",
+  "notification.json": "Notification",
+  "event-notification.json": "Event"
+}

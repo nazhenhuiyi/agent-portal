@@ -1,0 +1,23 @@
+node_modules/
+.local/
+server/dist/
+server/resources/
+server/deployment/
+clients/android/.gradle/
+clients/android/**/build/
+clients/android/local.properties
+*.log
+.DS_Store
+/*.tgz
+
+# Local credentials, databases, and signing material
+.env
+.env.*
+!.env.example
+credentials.json
+*.token
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.jks
+*.keystore

@@ -1,0 +1,1022 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent Portal protocol v0.2",
+  "description": "Request fields are strict; response readers tolerate added fields. Cross-field, byte-size and persistence rules are specified in protocol/semantics.md.",
+  "$defs": {
+    "TopicId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+    },
+    "ItemId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,127}$"
+    },
+    "TemplateId": {
+      "$ref": "#/$defs/TopicId"
+    },
+    "Revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "Cursor": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048
+    },
+    "Sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "JsonValue": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        }
+      ]
+    },
+    "TemplateRef": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/TemplateId"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "id",
+        "version"
+      ],
+      "additionalProperties": false
+    },
+    "Link": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "url"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://",
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "type",
+        "url"
+      ],
+      "additionalProperties": false
+    },
+    "ContentInput": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": "\\S"
+        },
+        "body": {
+          "type": "string",
+          "maxLength": 2000,
+          "default": ""
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "default": {}
+        },
+        "template": {
+          "$ref": "#/$defs/TemplateRef"
+        },
+        "link": {
+          "$ref": "#/$defs/Link"
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "additionalProperties": false
+    },
+    "Content": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": "\\S"
+        },
+        "body": {
+          "type": "string",
+          "maxLength": 2000,
+          "default": ""
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "default": {}
+        },
+        "template": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/TemplateId"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            }
+          },
+          "required": [
+            "id",
+            "version"
+          ],
+          "additionalProperties": true
+        },
+        "link": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "url"
+            },
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https?://",
+              "maxLength": 2048
+            }
+          },
+          "required": [
+            "type",
+            "url"
+          ],
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "title",
+        "body",
+        "data"
+      ],
+      "additionalProperties": true
+    },
+    "PublishRequest": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "$ref": "#/$defs/ContentInput"
+        }
+      },
+      "required": [
+        "content"
+      ],
+      "additionalProperties": false
+    },
+    "TopicInput": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": "\\S"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1000,
+          "default": ""
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "Topic": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/TopicId"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description"
+      ],
+      "additionalProperties": true
+    },
+    "TopicList": {
+      "type": "object",
+      "properties": {
+        "topics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Topic"
+          }
+        }
+      },
+      "required": [
+        "topics"
+      ],
+      "additionalProperties": true
+    },
+    "Item": {
+      "type": "object",
+      "properties": {
+        "topic_id": {
+          "$ref": "#/$defs/TopicId"
+        },
+        "id": {
+          "$ref": "#/$defs/ItemId"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "created_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "content": {
+          "$ref": "#/$defs/Content"
+        }
+      },
+      "required": [
+        "topic_id",
+        "id",
+        "revision",
+        "created_at",
+        "updated_at",
+        "content"
+      ],
+      "additionalProperties": true
+    },
+    "Notification": {
+      "type": "object",
+      "properties": {
+        "topic_id": {
+          "$ref": "#/$defs/TopicId"
+        },
+        "id": {
+          "$ref": "#/$defs/NotificationId"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "created_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "content": {
+          "$ref": "#/$defs/NotificationContent"
+        },
+        "mode": {
+          "enum": [
+            "alert",
+            "silent"
+          ]
+        },
+        "expires_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "topic_id",
+        "id",
+        "revision",
+        "created_at",
+        "updated_at",
+        "content",
+        "mode",
+        "expires_at"
+      ],
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "silent"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "expires_at": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "expires_at": {
+                "$ref": "#/$defs/Timestamp"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "UpsertEvent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "topic_id": {
+          "$ref": "#/$defs/TopicId"
+        },
+        "item_id": {
+          "$ref": "#/$defs/ItemId"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "recorded_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "const": "item.upserted"
+        },
+        "item": {
+          "$ref": "#/$defs/Item"
+        }
+      },
+      "required": [
+        "id",
+        "topic_id",
+        "item_id",
+        "revision",
+        "recorded_at",
+        "type",
+        "item"
+      ],
+      "additionalProperties": true
+    },
+    "DeleteEvent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "topic_id": {
+          "$ref": "#/$defs/TopicId"
+        },
+        "item_id": {
+          "$ref": "#/$defs/ItemId"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "recorded_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "const": "item.deleted"
+        },
+        "item": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "id",
+        "topic_id",
+        "item_id",
+        "revision",
+        "recorded_at",
+        "type",
+        "item"
+      ],
+      "additionalProperties": true
+    },
+    "Event": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/UpsertEvent"
+        },
+        {
+          "$ref": "#/$defs/DeleteEvent"
+        },
+        {
+          "$ref": "#/$defs/NotificationUpsertEvent"
+        },
+        {
+          "$ref": "#/$defs/NotificationClearEvent"
+        }
+      ]
+    },
+    "Snapshot": {
+      "type": "object",
+      "properties": {
+        "topic_id": {
+          "$ref": "#/$defs/TopicId"
+        },
+        "next_cursor": {
+          "$ref": "#/$defs/Cursor"
+        },
+        "has_more": {
+          "const": false
+        },
+        "server_time": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "mode": {
+          "const": "snapshot"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Item"
+          }
+        },
+        "notifications": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Notification"
+          }
+        }
+      },
+      "required": [
+        "topic_id",
+        "next_cursor",
+        "has_more",
+        "server_time",
+        "mode",
+        "items",
+        "notifications"
+      ],
+      "additionalProperties": true
+    },
+    "Delta": {
+      "type": "object",
+      "properties": {
+        "topic_id": {
+          "$ref": "#/$defs/TopicId"
+        },
+        "next_cursor": {
+          "$ref": "#/$defs/Cursor"
+        },
+        "has_more": {
+          "type": "boolean"
+        },
+        "server_time": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "mode": {
+          "const": "delta"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Event"
+          },
+          "maxItems": 500
+        }
+      },
+      "required": [
+        "topic_id",
+        "next_cursor",
+        "has_more",
+        "server_time",
+        "mode",
+        "events"
+      ],
+      "additionalProperties": true
+    },
+    "SyncResponse": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Snapshot"
+        },
+        {
+          "$ref": "#/$defs/Delta"
+        }
+      ]
+    },
+    "History": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Event"
+          },
+          "maxItems": 100
+        },
+        "next_before": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Cursor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "events",
+        "next_before"
+      ],
+      "additionalProperties": true
+    },
+    "SyncHint": {
+      "type": "object",
+      "properties": {
+        "topic_id": {
+          "$ref": "#/$defs/TopicId"
+        }
+      },
+      "required": [
+        "topic_id"
+      ],
+      "additionalProperties": true
+    },
+    "Asset": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "media_type": {
+          "type": "string",
+          "enum": [
+            "image/png",
+            "image/webp"
+          ]
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2097152
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2048
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2048
+        }
+      },
+      "required": [
+        "id",
+        "media_type",
+        "bytes",
+        "width",
+        "height"
+      ],
+      "additionalProperties": true
+    },
+    "Capabilities": {
+      "type": "object",
+      "properties": {
+        "api_version": {
+          "const": "v1"
+        },
+        "template_renderer_versions": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "template_features": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "content_bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "request_bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "template_bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "snapshot_bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "delta_bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "asset_bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "asset_max_dimension": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "items_per_topic": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "history_retention_seconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "idempotency_retention_seconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "notifications_per_topic": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "content_bytes",
+            "request_bytes",
+            "template_bytes",
+            "snapshot_bytes",
+            "delta_bytes",
+            "asset_bytes",
+            "asset_max_dimension",
+            "items_per_topic",
+            "history_retention_seconds",
+            "idempotency_retention_seconds",
+            "notifications_per_topic"
+          ],
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "api_version",
+        "template_renderer_versions",
+        "template_features",
+        "limits"
+      ],
+      "additionalProperties": true
+    },
+    "Error": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*$"
+            },
+            "message": {
+              "type": "string",
+              "minLength": 1
+            },
+            "request_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "code",
+            "message",
+            "request_id"
+          ],
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "additionalProperties": true
+    },
+    "NotificationId": {
+      "$ref": "#/$defs/ItemId"
+    },
+    "NotificationContentInput": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": "\\S"
+        },
+        "body": {
+          "type": "string",
+          "maxLength": 500,
+          "default": ""
+        },
+        "link": {
+          "$ref": "#/$defs/Link"
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "additionalProperties": false
+    },
+    "NotificationContent": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": "\\S"
+        },
+        "body": {
+          "type": "string",
+          "maxLength": 500,
+          "default": ""
+        },
+        "link": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "url"
+            },
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^https?://",
+              "maxLength": 2048
+            }
+          },
+          "required": [
+            "type",
+            "url"
+          ],
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "title",
+        "body"
+      ],
+      "additionalProperties": true
+    },
+    "NotificationRequest": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "$ref": "#/$defs/NotificationContentInput"
+        },
+        "mode": {
+          "enum": [
+            "alert",
+            "silent"
+          ],
+          "default": "alert"
+        },
+        "ttl_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 86400,
+          "default": 600
+        }
+      },
+      "required": [
+        "content"
+      ],
+      "additionalProperties": false
+    },
+    "NotificationUpsertEvent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "topic_id": {
+          "$ref": "#/$defs/TopicId"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "recorded_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "const": "notification.upserted"
+        },
+        "notification_id": {
+          "$ref": "#/$defs/NotificationId"
+        },
+        "notification": {
+          "$ref": "#/$defs/Notification"
+        }
+      },
+      "required": [
+        "id",
+        "topic_id",
+        "notification_id",
+        "revision",
+        "recorded_at",
+        "type",
+        "notification"
+      ],
+      "additionalProperties": true
+    },
+    "NotificationClearEvent": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "topic_id": {
+          "$ref": "#/$defs/TopicId"
+        },
+        "revision": {
+          "$ref": "#/$defs/Revision"
+        },
+        "recorded_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "type": {
+          "const": "notification.cleared"
+        },
+        "notification_id": {
+          "$ref": "#/$defs/NotificationId"
+        },
+        "notification": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "id",
+        "topic_id",
+        "notification_id",
+        "revision",
+        "recorded_at",
+        "type",
+        "notification"
+      ],
+      "additionalProperties": true
+    },
+    "PublicationItem": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "$ref": "#/$defs/ContentInput"
+        },
+        "id": {
+          "$ref": "#/$defs/ItemId"
+        },
+        "if_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "Omit for unconditional replacement; 0 requires absence; positive value matches the current revision."
+        }
+      },
+      "required": [
+        "content",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "PublicationNotification": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "$ref": "#/$defs/NotificationContentInput"
+        },
+        "mode": {
+          "enum": [
+            "alert",
+            "silent"
+          ],
+          "default": "alert"
+        },
+        "ttl_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 86400,
+          "default": 600
+        },
+        "id": {
+          "$ref": "#/$defs/ItemId"
+        },
+        "if_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "description": "Omit for unconditional replacement; 0 requires absence; positive value matches the current revision."
+        }
+      },
+      "required": [
+        "content",
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "PublicationRequest": {
+      "type": "object",
+      "properties": {
+        "item": {
+          "$ref": "#/$defs/PublicationItem"
+        },
+        "notification": {
+          "$ref": "#/$defs/PublicationNotification"
+        }
+      },
+      "required": [],
+      "additionalProperties": false,
+      "minProperties": 1
+    },
+    "PublicationResult": {
+      "type": "object",
+      "properties": {
+        "item": {
+          "$ref": "#/$defs/Item"
+        },
+        "notification": {
+          "$ref": "#/$defs/Notification"
+        }
+      },
+      "required": [],
+      "additionalProperties": true,
+      "minProperties": 1
+    }
+  }
+}

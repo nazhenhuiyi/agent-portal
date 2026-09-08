@@ -1,0 +1,316 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Native widget template v1",
+  "description": "Immutable upload contract; renderer v1 contains static layout and data binding. Node-count, tree-depth and asset references need semantic validation.",
+  "$ref": "#/$defs/Template",
+  "$defs": {
+    "Pointer": {
+      "type": "string",
+      "pattern": "^(/([^~/]|~[01])*)+$",
+      "maxLength": 256
+    },
+    "TextValue": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "string",
+              "maxLength": 2000
+            }
+          },
+          "required": [
+            "value"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "bind": {
+              "$ref": "#/$defs/Pointer"
+            },
+            "fallback": {
+              "type": "string",
+              "maxLength": 2000,
+              "default": ""
+            }
+          },
+          "required": [
+            "bind"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "ProgressValue": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "value"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "bind": {
+              "$ref": "#/$defs/Pointer"
+            },
+            "fallback": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0
+            }
+          },
+          "required": [
+            "bind"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Column": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "column"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Node"
+          },
+          "minItems": 1,
+          "maxItems": 12
+        },
+        "gap_dp": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 24,
+          "default": 4
+        }
+      },
+      "required": [
+        "type",
+        "children"
+      ],
+      "additionalProperties": false
+    },
+    "Row": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "row"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Node"
+          },
+          "minItems": 1,
+          "maxItems": 12
+        },
+        "gap_dp": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 24,
+          "default": 4
+        }
+      },
+      "required": [
+        "type",
+        "children"
+      ],
+      "additionalProperties": false
+    },
+    "Text": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "text"
+        },
+        "text": {
+          "$ref": "#/$defs/TextValue"
+        },
+        "style": {
+          "type": "string",
+          "enum": [
+            "title",
+            "body",
+            "caption"
+          ],
+          "default": "body"
+        },
+        "max_lines": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4,
+          "default": 2
+        }
+      },
+      "required": [
+        "type",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "Image": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "image"
+        },
+        "asset_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "width_dp": {
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 256
+        },
+        "height_dp": {
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 256
+        },
+        "fit": {
+          "type": "string",
+          "enum": [
+            "contain",
+            "cover"
+          ],
+          "default": "contain"
+        }
+      },
+      "required": [
+        "type",
+        "asset_id",
+        "width_dp",
+        "height_dp"
+      ],
+      "additionalProperties": false
+    },
+    "Progress": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "progress"
+        },
+        "value": {
+          "$ref": "#/$defs/ProgressValue"
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "Spacer": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "spacer"
+        },
+        "size_dp": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32
+        }
+      },
+      "required": [
+        "type",
+        "size_dp"
+      ],
+      "additionalProperties": false
+    },
+    "Node": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/Column"
+        },
+        {
+          "$ref": "#/$defs/Row"
+        },
+        {
+          "$ref": "#/$defs/Text"
+        },
+        {
+          "$ref": "#/$defs/Image"
+        },
+        {
+          "$ref": "#/$defs/Progress"
+        },
+        {
+          "$ref": "#/$defs/Spacer"
+        }
+      ]
+    },
+    "Template": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "renderer_version": {
+          "const": 1
+        },
+        "requires": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "layout.basic",
+              "text.bind",
+              "image.static",
+              "progress.bind"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "asset_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "maxItems": 32,
+          "uniqueItems": true
+        },
+        "widget": {
+          "$ref": "#/$defs/Node"
+        },
+        "compact_widget": {
+          "$ref": "#/$defs/Node"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "renderer_version",
+        "requires",
+        "asset_ids",
+        "widget"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

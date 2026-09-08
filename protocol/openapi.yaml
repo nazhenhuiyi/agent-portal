@@ -1,0 +1,616 @@
+openapi: 3.1.0
+info:
+  title: Agent Portal API
+  version: 0.2.0
+  description: 自有数据展示协议。通知与小组件展示条目独立发布、独立同步。规范语义见 semantics.md。
+jsonSchemaDialect: https://json-schema.org/draft/2020-12/schema
+security:
+- bearerAuth: []
+tags:
+- name: 发布
+- name: 读取
+- name: 管理
+paths:
+  /v1/topics/{topic}/items/{item}:
+    parameters:
+    - $ref: '#/components/parameters/Topic'
+    - $ref: '#/components/parameters/Item'
+    put:
+      operationId: putItem
+      summary: 创建或整份替换展示条目
+      description: 幂等键必填；同一键同一请求重放原响应。If-Match 与 If-None-Match 互斥。事务保存成功后返回，不代表手机送达。
+        只影响展示条目，不触发通知。
+      tags:
+      - 发布
+      x-permission: write
+      responses:
+        '200':
+          description: 更新或恢复，返回当前 Item。
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas/core.schema.json#/$defs/Item
+          headers: &id002
+            ETag: &id001
+              description: 当前版本的强 ETag，例如 "2"。
+              schema:
+                type: string
+                pattern: ^"[1-9][0-9]*"$
+        '201':
+          description: 首次创建。
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas/core.schema.json#/$defs/Item
+          headers:
+            ETag: *id001
+            Location:
+              schema:
+                type: string
+              description: 新条目的相对资源路径。
+        '409':
+          $ref: '#/components/responses/Error'
+        '412':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas/core.schema.json#/$defs/PublishRequest
+      parameters:
+      - &id003
+        $ref: '#/components/parameters/IdempotencyKey'
+      - &id004
+        $ref: '#/components/parameters/IfMatch'
+      - $ref: '#/components/parameters/IfNoneMatch'
+    get:
+      operationId: getItem
+      summary: 读取当前条目
+      description: 读取当前条目
+      tags:
+      - 读取
+      x-permission: read
+      responses:
+        '200':
+          description: 当前条目。
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas/core.schema.json#/$defs/Item
+          headers: *id002
+        '404':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: deleteItem
+      summary: 删除当前条目并记录变化
+      description: 无请求体，不接受 If-None-Match。已不存在时不追加变化。历史仍按保留策略存在。 不清除任何通知。
+      tags:
+      - 发布
+      x-permission: write
+      responses:
+        '204':
+          description: 当前条目已不存在；不删除历史。
+        '409':
+          $ref: '#/components/responses/Error'
+        '412':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+      - *id003
+      - *id004
+  /v1/topics:
+    get:
+      operationId: listTopics
+      summary: 列出可读取的主题
+      description: 列出可读取的主题
+      tags:
+      - 读取
+      x-permission: read
+      responses:
+        '200':
+          description: 只返回授权主题。
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas/core.schema.json#/$defs/TopicList
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/topics/{topic}:
+    parameters:
+    - $ref: '#/components/parameters/Topic'
+    put:
+      operationId: putTopic
+      summary: 创建或替换主题显示信息
+      description: 创建或替换主题显示信息
+      tags:
+      - 管理
+      x-permission: admin
+      responses:
+        '200':
+          description: 已替换。
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas/core.schema.json#/$defs/Topic
+        '201':
+          description: 已创建。
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas/core.schema.json#/$defs/Topic
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas/core.schema.json#/$defs/TopicInput
+  /v1/capabilities:
+    get:
+      operationId: getCapabilities
+      summary: 查询服务端协议能力与实际限制
+      description: 查询服务端协议能力与实际限制
+      tags:
+      - 读取
+      x-permission: authenticated
+      responses:
+        '200':
+          description: 不是手机端能力声明。
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas/core.schema.json#/$defs/Capabilities
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/topics/{topic}/sync:
+    parameters:
+    - $ref: '#/components/parameters/Topic'
+    get:
+      operationId: syncTopic
+      summary: 首次快照或游标增量同步
+      description: 快照与游标同一数据库视图。增量页内升序且不跳过事件；has_more 时继续。本轮固定高水位，详见 semantics.md。
+      tags:
+      - 读取
+      x-permission: read
+      responses:
+        '200':
+          description: 无游标是 snapshot，有游标是 delta。
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas/core.schema.json#/$defs/SyncResponse
+        '400':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '410':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+      - name: cursor
+        in: query
+        description: 不透明同步游标，绑定 Topic 和日志世代；不是历史分页标记。
+        schema:
+          $ref: ./schemas/core.schema.json#/$defs/Cursor
+      - name: limit
+        in: query
+        description: 仅增量有效；无 cursor 时不得指定。
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 500
+          default: 100
+  /v1/topics/{topic}/history:
+    parameters:
+    - $ref: '#/components/parameters/Topic'
+    get:
+      operationId: getHistory
+      summary: 从新到旧浏览变化记录
+      description: 从新到旧浏览变化记录
+      tags:
+      - 读取
+      x-permission: read
+      responses:
+        '200':
+          description: 只浏览，不推进同步，不触发提醒。
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas/core.schema.json#/$defs/History
+        '400':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+      - name: item_id
+        in: query
+        description: 可选条目筛选，翻页必须保持一致。
+        schema:
+          $ref: ./schemas/core.schema.json#/$defs/ItemId
+      - name: before
+        in: query
+        description: 历史分页标记，不可用于 sync。
+        schema:
+          $ref: ./schemas/core.schema.json#/$defs/Cursor
+      - name: limit
+        in: query
+        description: 最大事件条数；也受页字节限制。
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+      - name: notification_id
+        in: query
+        schema:
+          $ref: ./schemas/core.schema.json#/$defs/NotificationId
+        description: 按通知筛选，与 item_id 互斥。
+  /v1/topics/{topic}/stream:
+    parameters:
+    - $ref: '#/components/parameters/Topic'
+    get:
+      operationId: streamTopic
+      summary: 订阅 SSE 变化提示
+      description: 认证先于流响应。连接后出错直接关闭，不在流中写入 JSON 错误体。慢客户端断开并重连同步。
+      tags:
+      - 读取
+      x-permission: read
+      responses:
+        '200':
+          description: 连接建立后及内容变化时发送 sync_required；约 15 秒注释心跳。无 SSE id、无 Last-Event-ID
+            重放；客户端用 sync 补取。
+          content:
+            text/event-stream:
+              schema:
+                type: string
+              example: 'event: sync_required
+
+                data: {"topic_id":"research"}
+
+
+                '
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/templates/{id}/versions/{version}:
+    parameters:
+    - $ref: '#/components/parameters/Template'
+    - $ref: '#/components/parameters/Version'
+    put:
+      operationId: putTemplate
+      summary: 发布不可变模板版本
+      description: 路径与请求 id/version 必须一致。所有资源先上传。Schema 校验之外还需校验能力、树深度与素材集合。
+      tags:
+      - 管理
+      x-permission: admin
+      responses:
+        '201':
+          description: 新模板。
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas/template.schema.json
+        '200':
+          description: 相同内容已存在。
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas/template.schema.json
+        '409':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas/template.schema.json
+    get:
+      operationId: getTemplate
+      summary: 读取固定版本模板
+      description: 读取固定版本模板
+      tags:
+      - 读取
+      x-permission: read
+      responses:
+        '200':
+          description: 模板原始文档。
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas/template.schema.json
+        '404':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/assets/{sha256}:
+    parameters:
+    - $ref: '#/components/parameters/Hash'
+    put:
+      operationId: putAsset
+      summary: 上传静态图片素材
+      description: 上传静态图片素材
+      tags:
+      - 管理
+      x-permission: admin
+      responses:
+        '200':
+          description: 内容已存在。
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas/core.schema.json#/$defs/Asset
+        '201':
+          description: 新素材。
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas/core.schema.json#/$defs/Asset
+        '413':
+          $ref: '#/components/responses/Error'
+        '415':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+          image/webp:
+            schema:
+              type: string
+              format: binary
+    get:
+      operationId: getAsset
+      summary: 下载授权可读的展示素材
+      description: 下载授权可读的展示素材
+      tags:
+      - 读取
+      x-permission: read
+      responses:
+        '200':
+          description: 静态图片字节，按实际类型返回。
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+          headers:
+            ETag:
+              schema:
+                type: string
+              description: 加引号的 SHA-256。
+        '404':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+  /v1/topics/{topic}/notifications/{notification}:
+    parameters:
+    - $ref: '#/components/parameters/Topic'
+    - $ref: '#/components/parameters/Notification'
+    put:
+      operationId: putNotification
+      summary: 创建或整份替换通知
+      description: 创建或整份替换通知；不创建、更新或删除任何小组件展示条目。
+      tags:
+      - 发布
+      x-permission: write
+      responses:
+        '200':
+          description: 更新或恢复，返回当前 Notification。
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas/core.schema.json#/$defs/Notification
+          headers:
+            ETag:
+              description: 当前版本的强 ETag，例如 "2"。
+              schema:
+                type: string
+                pattern: ^"[1-9][0-9]*"$
+        '201':
+          description: 首次创建。
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas/core.schema.json#/$defs/Notification
+          headers:
+            ETag:
+              description: 当前版本的强 ETag，例如 "2"。
+              schema:
+                type: string
+                pattern: ^"[1-9][0-9]*"$
+            Location:
+              schema:
+                type: string
+              description: 新条目的相对资源路径。
+        '409':
+          $ref: '#/components/responses/Error'
+        '412':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas/core.schema.json#/$defs/NotificationRequest
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/IfMatch'
+      - $ref: '#/components/parameters/IfNoneMatch'
+    get:
+      operationId: getNotification
+      summary: 读取当前通知
+      description: 读取当前通知；不创建、更新或删除任何小组件展示条目。
+      tags:
+      - 读取
+      x-permission: read
+      responses:
+        '200':
+          description: 当前通知。
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas/core.schema.json#/$defs/Notification
+          headers:
+            ETag:
+              description: 当前版本的强 ETag，例如 "2"。
+              schema:
+                type: string
+                pattern: ^"[1-9][0-9]*"$
+        '404':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: clearNotification
+      summary: 清除通知并保留历史
+      description: 清除通知并保留历史；不创建、更新或删除任何小组件展示条目。
+      tags:
+      - 发布
+      x-permission: write
+      responses:
+        '204':
+          description: 当前通知已不存在；不删除历史。
+        '409':
+          $ref: '#/components/responses/Error'
+        '412':
+          $ref: '#/components/responses/Error'
+        default:
+          $ref: '#/components/responses/Error'
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      - $ref: '#/components/parameters/IfMatch'
+  /v1/topics/{topic}/publish:
+    parameters:
+    - $ref: '#/components/parameters/Topic'
+    post:
+      operationId: publish
+      summary: 原子发布条目、通知或两者
+      description: 至少一部分；每部分有独立 ID。缺省部分保持不变。每部分可指定 if_revision：0 要求不存在，正数要求匹配。拒绝请求级
+        If-Match/If-None-Match。全部成功或全部回滚。
+      tags:
+      - 发布
+      x-permission: write
+      parameters:
+      - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./schemas/core.schema.json#/$defs/PublicationRequest
+      responses:
+        '200':
+          description: 仅返回本次提交的资源；独立版本。
+          content:
+            application/json:
+              schema:
+                $ref: ./schemas/core.schema.json#/$defs/PublicationResult
+        default:
+          $ref: '#/components/responses/Error'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: 私有实例签发的不透明令牌，不是 JWT 格式要求；读取和写入分开授权，管理员包含全部操作。
+  parameters:
+    Topic:
+      name: topic
+      in: path
+      required: true
+      schema:
+        $ref: ./schemas/core.schema.json#/$defs/TopicId
+    Item:
+      name: item
+      in: path
+      required: true
+      schema:
+        $ref: ./schemas/core.schema.json#/$defs/ItemId
+    Template:
+      name: id
+      in: path
+      required: true
+      schema:
+        $ref: ./schemas/core.schema.json#/$defs/TemplateId
+    Version:
+      name: version
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 2147483647
+    Hash:
+      name: sha256
+      in: path
+      required: true
+      schema:
+        $ref: ./schemas/core.schema.json#/$defs/Sha256
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: 同一令牌内唯一逻辑写入标识；重试保持原键。默认保留 24 小时。
+      schema:
+        type: string
+        pattern: ^[!-~]{1,128}$
+    IfMatch:
+      name: If-Match
+      in: header
+      description: 单个强版本 ETag；不接受弱 ETag、* 或列表。
+      schema:
+        type: string
+        pattern: ^"[1-9][0-9]*"$
+    IfNoneMatch:
+      name: If-None-Match
+      in: header
+      description: 仅 PUT；要求当前条目不存在。与 If-Match 互斥。
+      schema:
+        type: string
+        const: '*'
+    Notification:
+      name: notification
+      in: path
+      required: true
+      schema:
+        $ref: ./schemas/core.schema.json#/$defs/NotificationId
+  responses:
+    Error:
+      description: 统一错误。常见 400/401/403/404/409/410/412/413/415/422/429/500/503；详见
+        API 文档。
+      headers:
+        Retry-After:
+          schema:
+            type: string
+          description: 仅限可重试的限流或暂不可用响应；按秒或 HTTP-date。
+      content:
+        application/json:
+          schema:
+            $ref: ./schemas/core.schema.json#/$defs/Error

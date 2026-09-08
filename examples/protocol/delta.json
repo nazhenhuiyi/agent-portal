@@ -1,0 +1,66 @@
+{
+  "mode": "delta",
+  "topic_id": "research",
+  "events": [
+    {
+      "id": "bad8a427-2147-4445-a56c-904ec9a3d02b",
+      "topic_id": "research",
+      "item_id": "daily-2026-09-08",
+      "revision": 2,
+      "recorded_at": "2026-09-08T00:03:00Z",
+      "type": "item.upserted",
+      "item": {
+        "topic_id": "research",
+        "id": "daily-2026-09-08",
+        "revision": 2,
+        "created_at": "2026-09-08T00:00:00Z",
+        "updated_at": "2026-09-08T00:03:00Z",
+        "content": {
+          "title": "Agent 日报总览",
+          "body": "已整理 12 条信息 · 3 条重点\n今日任务已完成，可查看完整报告。",
+          "data": {
+            "phase": "done",
+            "progress": 1,
+            "count": 12
+          },
+          "template": {
+            "id": "report-card",
+            "version": 1
+          },
+          "link": {
+            "type": "url",
+            "url": "https://agent.example/reports/2026-09-08"
+          }
+        }
+      }
+    },
+    {
+      "id": "ed645c41-b9bf-473a-91f0-303ebc8caf54",
+      "topic_id": "research",
+      "notification_id": "daily-completed",
+      "revision": 1,
+      "recorded_at": "2026-09-08T00:03:00Z",
+      "type": "notification.upserted",
+      "notification": {
+        "topic_id": "research",
+        "id": "daily-completed",
+        "revision": 1,
+        "created_at": "2026-09-08T00:03:00Z",
+        "updated_at": "2026-09-08T00:03:00Z",
+        "content": {
+          "title": "今日日报已完成",
+          "body": "3 条重点值得关注，点击查看。",
+          "link": {
+            "type": "url",
+            "url": "https://agent.example/reports/2026-09-08"
+          }
+        },
+        "mode": "alert",
+        "expires_at": "2026-09-08T00:13:00Z"
+      }
+    }
+  ],
+  "next_cursor": "example-cursor-after-revision-2",
+  "has_more": false,
+  "server_time": "2026-09-08T00:03:00Z"
+}

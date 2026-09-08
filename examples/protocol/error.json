@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "revision_mismatch",
+    "message": "The item has changed.",
+    "request_id": "req_example"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "@agent-portal/cli",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "HTTP CLI for Agent Portal publishers and readers",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "agent-portal": "bin/agent-portal.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "skills",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "test:keychain": "node --test test-keychain/*.test.mjs"
+  },
+  "dependencies": {
+    "@napi-rs/keyring": "2.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nazhenhuiyi/agent-portal.git",
+    "directory": "packages/cli"
+  }
+}

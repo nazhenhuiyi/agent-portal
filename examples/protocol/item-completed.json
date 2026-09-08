@@ -1,0 +1,24 @@
+{
+  "topic_id": "research",
+  "id": "daily-2026-09-08",
+  "revision": 2,
+  "created_at": "2026-09-08T00:00:00Z",
+  "updated_at": "2026-09-08T00:03:00Z",
+  "content": {
+    "title": "Agent 日报总览",
+    "body": "已整理 12 条信息 · 3 条重点\n今日任务已完成，可查看完整报告。",
+    "data": {
+      "phase": "done",
+      "progress": 1,
+      "count": 12
+    },
+    "template": {
+      "id": "report-card",
+      "version": 1
+    },
+    "link": {
+      "type": "url",
+      "url": "https://agent.example/reports/2026-09-08"
+    }
+  }
+}

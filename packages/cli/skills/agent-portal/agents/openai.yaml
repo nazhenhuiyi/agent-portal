@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Portal"
+  short_description: "通过 CLI 将任务结果发布为手机通知或独立小组件内容，并安全重试与查询"
+  default_prompt: "使用 $agent-portal 将这次任务结果发布到我配置的手机展示服务。"

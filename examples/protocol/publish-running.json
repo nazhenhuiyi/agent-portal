@@ -1,0 +1,14 @@
+{
+  "content": {
+    "title": "日报生成中",
+    "body": "正在整理资料。",
+    "data": {
+      "phase": "running",
+      "progress": 0.2
+    },
+    "template": {
+      "id": "report-card",
+      "version": 1
+    }
+  }
+}

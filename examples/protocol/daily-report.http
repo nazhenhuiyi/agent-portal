@@ -1,0 +1,72 @@
+@baseUrl = http://localhost:8080
+@adminToken = REPLACE_WITH_ADMIN_TOKEN
+@writerToken = REPLACE_WITH_RESEARCH_WRITER_TOKEN
+@readerToken = REPLACE_WITH_RESEARCH_READER_TOKEN
+@cursor = REPLACE_WITH_CURSOR_FROM_SYNC_RESPONSE
+
+### 1. 管理员创建主题
+PUT {{baseUrl}}/v1/topics/research
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+< ./topic.json
+
+### 2. 管理员发布模板
+PUT {{baseUrl}}/v1/templates/report-card/versions/1
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+< ./template.json
+
+### 3. 业务方发布生成中（首次创建）
+PUT {{baseUrl}}/v1/topics/research/items/daily-2026-09-08
+Authorization: Bearer {{writerToken}}
+Content-Type: application/json
+Idempotency-Key: daily-2026-09-08-running
+If-None-Match: *
+
+< ./publish-running.json
+
+### 4. 手机首次同步；保存响应 next_cursor 到上方 cursor 变量
+GET {{baseUrl}}/v1/topics/research/sync
+Authorization: Bearer {{readerToken}}
+
+### 5. 同时更新展示条目并发出独立通知；原样重试整个请求
+POST {{baseUrl}}/v1/topics/research/publish
+Authorization: Bearer {{writerToken}}
+Content-Type: application/json
+Idempotency-Key: daily-2026-09-08-completed
+
+< ./publication-combined.json
+
+### 6. 手机增量补取；后续每次换成实际返回的 next_cursor
+GET {{baseUrl}}/v1/topics/research/sync?cursor={{cursor}}&limit=100
+Authorization: Bearer {{readerToken}}
+
+### 7. 浏览历史（不触发提醒）
+GET {{baseUrl}}/v1/topics/research/history?item_id=daily-2026-09-08&limit=50
+Authorization: Bearer {{readerToken}}
+
+### 8. 删除当前条目；历史保留
+DELETE {{baseUrl}}/v1/topics/research/items/daily-2026-09-08
+Authorization: Bearer {{writerToken}}
+Idempotency-Key: daily-2026-09-08-delete
+If-Match: "2"
+
+### 单独运行：订阅变化提示；该请求会保持连接
+GET {{baseUrl}}/v1/topics/research/stream
+Authorization: Bearer {{readerToken}}
+Accept: text/event-stream
+
+### 9. 只发送通知，不创建小组件展示条目
+PUT {{baseUrl}}/v1/topics/research/notifications/backup-failed
+Authorization: Bearer {{writerToken}}
+Content-Type: application/json
+Idempotency-Key: backup-failed-2026-09-08
+
+< ./notification-only.json
+
+### 10. 清除通知，保留历史，不影响展示条目
+DELETE {{baseUrl}}/v1/topics/research/notifications/backup-failed
+Authorization: Bearer {{writerToken}}
+Idempotency-Key: backup-failed-clear-2026-09-08
