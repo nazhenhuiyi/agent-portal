@@ -53,7 +53,17 @@ adb("shell", "appwidget", "grantbind", "--package", "dev.agentportal");
 const cli = (...args) =>
   spawnSync(
     "npm",
-    ["--prefix", "server", "run", "--silent", "cli", "--", ...args],
+    [
+      "--prefix",
+      "server",
+      "run",
+      "--silent",
+      "cli",
+      "--",
+      ...args,
+      "--data-dir",
+      path.join(root, ".local"),
+    ],
     { cwd: root, encoding: "utf8" },
   );
 function issue(role) {
@@ -119,6 +129,7 @@ try {
   instrument("endToEnd", read.token, write.token, expiredCursor);
   instrument("independentPresentation", read.token, write.token);
   instrument("allTemplateNodes", read.token, write.token);
+  instrument("widgetReapply", read.token, write.token);
   adb(
     "shell",
     "pm",

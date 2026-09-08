@@ -15,7 +15,7 @@ const usage = `Agent Portal server — Node.js 22
   agent-portal-server token create admin
   agent-portal-server token list
   agent-portal-server token revoke ID
-  agent-portal-server demo running|completed|notification|clear-notification|delete
+  agent-portal-server demo running|completed|notification|clear-notification|delete|showcase
   agent-portal-server rotate-epoch
 
 All commands accept --data-dir DIR (default ~/.local/share/agent-portal).
@@ -63,6 +63,7 @@ async function main() {
     (args.length > 1 ||
       (args[0] &&
         ![
+          "showcase",
           "running",
           "completed",
           "notification",
@@ -226,6 +227,44 @@ async function main() {
       });
       if (!r.ok) throw Error(await r.text());
       return r.status === 204 ? null : r.json();
+    }
+    if (args[0] === "showcase") {
+      const load = (name: string) =>
+        JSON.parse(
+          readFileSync(
+            new URL(
+              `../resources/examples/showcase/${name}.json`,
+              import.meta.url,
+            ),
+            "utf8",
+          ),
+        );
+      await call("/v1/topics/demo", "PUT", credentials.admin.token, {
+        name: "场景示例",
+        description:
+          "晨间阅读、代码巡检与旅途相册归档。示例任务数据，不代表实际执行结果。",
+      });
+      for (const name of ["reading", "review", "archive"]) {
+        const template = load(`${name}-template`);
+        await call(
+          `/v1/templates/${template.id}/versions/${template.version}`,
+          "PUT",
+          credentials.admin.token,
+          template,
+        );
+      }
+      for (const publication of load("publications")) {
+        await call(
+          "/v1/topics/demo/publish",
+          "POST",
+          credentials.writer.token,
+          publication,
+        );
+      }
+      console.log(
+        "Published 3 showcase items and 2 independent notifications to demo. Sample task data; no agent jobs were run.",
+      );
+      return;
     }
     await call("/v1/topics/demo", "PUT", credentials.admin.token, {
       name: "演示",

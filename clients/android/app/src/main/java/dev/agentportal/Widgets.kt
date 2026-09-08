@@ -164,19 +164,26 @@ object TemplateRenderer {
                 result
             }
             "text" ->
-                layout(R.layout.node_text).apply {
-                    setTextViewText(R.id.node, text(n.obj("text"), content))
-                    setTextViewTextSize(
-                        R.id.node,
-                        TypedValue.COMPLEX_UNIT_SP,
-                        when (n.str("style", "body")) {
-                            "title" -> 18f
-                            "caption" -> 12f
-                            else -> 14f
-                        },
-                    )
-                    setInt(R.id.node, "setMaxLines", n.num("max_lines", 2).toInt())
-                }
+                layout(if (n.str("style") == "title") R.layout.node_title else R.layout.node_text)
+                    .apply {
+                        setTextViewText(R.id.node, text(n.obj("text"), content))
+                        setTextViewTextSize(
+                            R.id.node,
+                            TypedValue.COMPLEX_UNIT_SP,
+                            when (n.str("style", "body")) {
+                                "title" -> 20f
+                                "caption" -> 11f
+                                else -> 14f
+                            },
+                        )
+                        setInt(R.id.node, "setMaxLines", n.num("max_lines", 2).toInt())
+                        setTextColor(
+                            R.id.node,
+                            android.graphics.Color.parseColor(
+                                if (n.str("style") == "title") "#303729" else "#68715D"
+                            ),
+                        )
+                    }
             "progress" ->
                 layout(R.layout.node_progress).apply {
                     val b = n.obj("value")
@@ -283,6 +290,10 @@ class PortalWidget : AppWidgetProvider() {
         }
 
         suspend fun render(context: Context, id: Int) {
+            AppWidgetManager.getInstance(context).updateAppWidget(id, buildViews(context, id))
+        }
+
+        internal suspend fun buildViews(context: Context, id: Int): RemoteViews {
             val repo = (context.applicationContext as PortalApp).repo
             val manager = AppWidgetManager.getInstance(context)
             val binding = repo.dao.widget(id)
@@ -290,10 +301,12 @@ class PortalWidget : AppWidgetProvider() {
             val value = row?.payload?.let(::parseObject)
             val content = value?.obj("content")
             val rv = RemoteViews(context.packageName, R.layout.widget_root)
+            // RemoteViews can be reapplied to an existing host view. Replace, never append.
+            rv.removeAllViews(R.id.content)
             if (content == null) {
                 rv.setTextViewText(R.id.empty, if (binding == null) "选择要展示的内容" else "暂无当前内容")
                 rv.setViewVisibility(R.id.empty, View.VISIBLE)
-                rv.setTextViewText(R.id.updated, "Agent Portal")
+                rv.setTextViewText(R.id.updated, "点击选择内容")
                 rv.setOnClickPendingIntent(
                     R.id.root,
                     PendingIntent.getActivity(
@@ -307,22 +320,40 @@ class PortalWidget : AppWidgetProvider() {
             } else {
                 rv.setViewVisibility(R.id.empty, View.GONE)
                 val options = manager.getAppWidgetOptions(id)
+                // The launcher reports portrait width and landscape height as the minimums.
+                val portrait =
+                    context.resources.configuration.orientation !=
+                        android.content.res.Configuration.ORIENTATION_LANDSCAPE
                 val width =
                     options
-                        .getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 240)
+                        .getInt(
+                            if (portrait) AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH
+                            else AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH,
+                            240,
+                        )
                         .coerceAtLeast(64)
                 val height =
                     options
-                        .getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 120)
+                        .getInt(
+                            if (portrait) AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT
+                            else AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,
+                            options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 120),
+                        )
                         .coerceAtLeast(48)
                 val ref = content["template"] as? JsonObject
                 val template =
                     ref?.let { repo.dao.template(it.str("id"), it.num("version")) }
                         ?.let { runCatching { parseObject(it.payload) }.getOrNull() }
+                val compact = width < 180 || height < 160
                 val fallback =
-                    parseObject(
-                        """{"type":"column","children":[{"type":"text","text":{"bind":"/title"},"style":"title"},{"type":"text","text":{"bind":"/body"},"style":"body"}]}"""
-                    )
+                    if (compact)
+                        parseObject(
+                            """{"type":"text","text":{"bind":"/title"},"style":"title","max_lines":1}"""
+                        )
+                    else
+                        parseObject(
+                            """{"type":"column","children":[{"type":"text","text":{"bind":"/title"},"style":"title"},{"type":"text","text":{"bind":"/body"},"style":"body"}]}"""
+                        )
                 val tree =
                     if (
                         template != null &&
@@ -330,8 +361,7 @@ class PortalWidget : AppWidgetProvider() {
                             width >= 100 &&
                             height >= 70
                     ) {
-                        if (width < 180 || height < 110)
-                            (template["compact_widget"] ?: template["widget"])!!.jsonObject
+                        if (compact) (template["compact_widget"] as? JsonObject) ?: fallback
                         else template.obj("widget")
                     } else fallback
                 val rendered =
@@ -341,7 +371,7 @@ class PortalWidget : AppWidgetProvider() {
                                 repo,
                                 tree,
                                 content,
-                                (width - 28).toFloat(),
+                                (width - 40).coerceAtLeast(8).toFloat(),
                             )
                         }
                         .getOrElse {
@@ -350,7 +380,7 @@ class PortalWidget : AppWidgetProvider() {
                                 repo,
                                 fallback,
                                 content,
-                                (width - 28).toFloat(),
+                                (width - 40).coerceAtLeast(8).toFloat(),
                             )
                         }
                 rv.addView(R.id.content, rendered)
@@ -367,7 +397,7 @@ class PortalWidget : AppWidgetProvider() {
                     ),
                 )
             }
-            manager.updateAppWidget(id, rv)
+            return rv
         }
     }
 }

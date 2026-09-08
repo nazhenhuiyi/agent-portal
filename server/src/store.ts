@@ -389,7 +389,7 @@ export class Store {
       if (end > high || pos > end) fail(400, "invalid_cursor");
       const rows = this.db
         .prepare(
-          "SELECT CAST(seq AS TEXT) AS seq,json FROM events WHERE topic=? AND seq>? AND seq<=? ORDER BY seq LIMIT ?",
+          "SELECT CAST(seq AS TEXT) AS seq,json FROM events WHERE topic=? AND seq>? AND seq<=? ORDER BY events.seq LIMIT ?",
         )
         .all(topic, pos, end, limit + 1) as EventRow[];
       const { events, hasMore, last } = eventPage(rows, limit);
@@ -444,7 +444,7 @@ export class Store {
           : undefined;
       const rows = this.db
         .prepare(
-          `SELECT CAST(seq AS TEXT) AS seq,json FROM events WHERE topic=? AND seq<=? AND seq<? ${resourceKey ? "AND item=?" : ""} ORDER BY seq DESC LIMIT ?`,
+          `SELECT CAST(seq AS TEXT) AS seq,json FROM events WHERE topic=? AND seq<=? AND seq<? ${resourceKey ? "AND item=?" : ""} ORDER BY events.seq DESC LIMIT ?`,
         )
         .all(
           topic,
@@ -479,7 +479,7 @@ export class Store {
         .all() as any[]) {
         const rows = this.db
           .prepare(
-            "SELECT CAST(seq AS TEXT) AS seq,time FROM events WHERE topic=? ORDER BY seq LIMIT 250",
+            "SELECT CAST(seq AS TEXT) AS seq,time FROM events WHERE topic=? ORDER BY events.seq LIMIT 250",
           )
           .all(id) as any[];
         let last: bigint | undefined;

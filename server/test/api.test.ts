@@ -166,6 +166,56 @@ test("pagination high water, retention and cursor scope are explicit", async (t)
     4,
   );
 });
+test("history, sync and retention use numeric event order across digit boundaries", async (t) => {
+  const { s, call } = await harness(t);
+  let cursor = (await call("GET", "/v1/topics/demo/sync")).json().next_cursor;
+  const revisions = Array.from({ length: 115 }, (_, i) => i + 1);
+  for (const revision of revisions) {
+    const result = await call(
+      "PUT",
+      path,
+      publish(String(revision)),
+      `order-${revision}`,
+    );
+    assert.equal(result.statusCode, revision === 1 ? 201 : 200);
+  }
+  const synced: number[] = [];
+  for (;;) {
+    const page = (
+      await call("GET", `/v1/topics/demo/sync?limit=17&cursor=${cursor}`)
+    ).json();
+    synced.push(...page.events.map((e: any) => e.revision));
+    cursor = page.next_cursor;
+    if (!page.has_more) break;
+    assert(synced.length <= revisions.length);
+  }
+  assert.deepEqual(synced, revisions);
+  const history: number[] = [];
+  let before = "";
+  for (;;) {
+    const page = (
+      await call(
+        "GET",
+        `/v1/topics/demo/history?limit=17${before ? `&before=${before}` : ""}`,
+      )
+    ).json();
+    history.push(...page.events.map((e: any) => e.revision));
+    before = page.next_before;
+    if (!before) break;
+    assert(history.length <= revisions.length);
+  }
+  assert.deepEqual(history, [...revisions].reverse());
+  // Only the first 99 events have expired. Newer records must survive cleanup.
+  s.db
+    .prepare("UPDATE events SET time=0 WHERE topic=? AND seq<=99")
+    .run("demo");
+  s.cleanup();
+  assert.deepEqual(
+    s.history("demo").events.map((e: any) => e.revision),
+    revisions.slice(99).reverse(),
+  );
+});
+
 test("permissions, strict inputs, template immutability and PNG assets", async (t) => {
   const { call, writer, reader } = await harness(t);
   assert.equal(

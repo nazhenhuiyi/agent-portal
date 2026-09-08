@@ -76,6 +76,10 @@ agent-portal-server token revoke TOKEN_ID
 
 自动重启、开机启动和日志轮转见包内的[部署说明](deployment/README.md)。不要同时启动多个管理器或 PM2 cluster。
 
+## 内容场景演示
+
+服务启动后，运行 `agent-portal-server demo showcase`（可加 `--data-dir DIR`）写入晨间阅读、代码巡检和旅途相册三个示例。打开 App 同步，再选择要放到桌面的小组件。通知只包含简短提醒，小组件展示清单、进度或归档摘要。数据为场景示例，不会实际执行这些任务；重复运行会增加历史，保留已有内容。
+
 ## 从源码构建与验证
 
 在完整仓库根目录执行：
